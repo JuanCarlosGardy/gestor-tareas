@@ -52,15 +52,29 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btnLogout")?.addEventListener("click", async () => {
     try { await doLogout(); } catch (e) { setAuthStatus(e.message); }
   });
+onAuthStateChanged(auth, (user) => {
+  cloudUid = user?.uid || null;
 
-   onAuthStateChanged(auth, (user) => {
-    if (user) {
-      setAuthStatus(`Conectado: ${user.email}`);
-      if ($("btnLogout")) $("btnLogout").style.display = "inline-block";
-    } else {
-      setAuthStatus("Modo invitado (sin login)");
-      if ($("btnLogout")) $("btnLogout").style.display = "none";
-    }
+  // ---- Actualizar UI de login ----
+  if (user) {
+    setAuthStatus(`Conectado: ${user.email}`);
+    if ($("btnLogout")) $("btnLogout").style.display = "inline-block";
+  } else {
+    setAuthStatus("Modo invitado (sin login)");
+    if ($("btnLogout")) $("btnLogout").style.display = "none";
+  }
+
+  // ---- Modo sin sesión ----
+  if (!cloudUid) {
+    tasks = loadTasks(); // puedes cambiar luego a bloquear
+    render();
+    return;
+  }
+
+  // ---- Modo cloud ----
+  startCloudListener((cloudTasks) => {
+    tasks = Array.isArray(cloudTasks) ? cloudTasks : [];
+    render();
   });
 });
 console.log("Auth:", window.firebaseAuth);
