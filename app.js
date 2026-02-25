@@ -6,7 +6,8 @@
    - Editar tareas
    - Imprimir nota de trabajo
 ========================= */
-
+console.log("Auth:", window.firebaseAuth);
+console.log("DB:", window.firebaseDB);
 const LS_KEY = "gtp_tasks_v2";
 
 const el = (id) => document.getElementById(id);
