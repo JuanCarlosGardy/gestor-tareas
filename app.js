@@ -96,7 +96,105 @@ const fields = {
   nextAction: el("nextAction"),
   details: el("details"),
 };
+// ===============================
+// FIRESTORE SYNC (1 usuario / multi-dispositivo)
+// ===============================
+import {
+  collection,
+  doc,
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+import {
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const auth = window.firebaseAuth;
+const db = window.firebaseDB;
+
+if (!auth || !db) {
+  throw new Error("Firebase Auth/DB no disponibles. Revisa el orden en index.html.");
+}
+
+let cloudUid = null;
+let unsubscribeCloud = null;
+
+function tasksCol(uid) {
+  return collection(db, "users", uid, "tasks");
+}
+
+// Convierte doc Firestore -> tarea de tu app (sin inventar campos)
+function fromDoc(d) {
+  const data = d.data() || {};
+  return { id: d.id, ...data };
+}
+
+// Convierte tarea de tu app -> payload Firestore (guardamos TODO tal cual)
+function toPayload(task) {
+  const payload = { ...task };
+  // No guardamos el id dentro del doc (ya está en el docId)
+  delete payload.id;
+  // timestamps
+  payload.updatedAt = serverTimestamp();
+  if (!payload.createdAt) payload.createdAt = serverTimestamp();
+  return payload;
+}
+
+async function cloudCreateTask(task) {
+  if (!cloudUid) throw new Error("No hay sesión iniciada.");
+  await addDoc(tasksCol(cloudUid), toPayload(task));
+}
+
+async function cloudUpsertTask(taskId, task) {
+  if (!cloudUid) throw new Error("No hay sesión iniciada.");
+  await setDoc(doc(db, "users", cloudUid, "tasks", taskId), toPayload(task), { merge: true });
+}
+
+async function cloudPatchTask(taskId, patch) {
+  if (!cloudUid) throw new Error("No hay sesión iniciada.");
+  await updateDoc(doc(db, "users", cloudUid, "tasks", taskId), { ...patch, updatedAt: serverTimestamp() });
+}
+
+async function cloudDeleteTask(taskId) {
+  if (!cloudUid) throw new Error("No hay sesión iniciada.");
+  await deleteDoc(doc(db, "users", cloudUid, "tasks", taskId));
+}
+
+async function cloudClearAll() {
+  if (!cloudUid) throw new Error("No hay sesión iniciada.");
+  const snap = await getDocs(tasksCol(cloudUid));
+  const deletions = snap.docs.map(d => deleteDoc(d.ref));
+  await Promise.all(deletions);
+}
+
+// Escucha realtime (orden estable)
+function startCloudListener(onTasks) {
+  if (!cloudUid) return;
+  if (unsubscribeCloud) unsubscribeCloud();
+
+  const q = query(
+    tasksCol(cloudUid),
+    orderBy("createdAt", "asc")
+  );
+
+  unsubscribeCloud = onSnapshot(q, (snap) => {
+    const list = snap.docs.map(fromDoc);
+    onTasks(list);
+  });
+}
+
+// Modo cloud activo?
+function isCloudMode() {
+  return !!cloudUid;
+}
 let tasks = loadTasks();
 let activeCompanyValue = "ALL";
 let editingId = null;
