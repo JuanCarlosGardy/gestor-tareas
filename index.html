@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gestor de Tareas por Empresa</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <header class="app-header">
+    <div>
+      <h1>Gestor de Tareas por Empresa</h1>
+<div id="activeCompanyLabel" class="active-company-label"></div>
+      <p class="muted">Crea tareas, genera código con fecha, marca realizadas e imprime nota de trabajo.</p>
+    </div>
+
+   <div class="tools">
+  <span class="tools-label">Herramientas</span>
+  <button id="btnExport" class="btn-secondary">Exportar (JSON)</button>
+<label class="btn-secondary file-btn">
+  Importar (JSON)
+  <input type="file" id="fileImport" accept="application/json" hidden>
+</label>
+</div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>Nueva tarea</h2>
+
+      <form id="taskForm" class="grid">
+        <div class="field">
+          <label>Empresa / Cliente</label>
+          <input id="company" type="text" placeholder="Ej: Restaurante Barquilla" required />
+        </div>
+
+        <div class="field">
+          <label>Título de la tarea</label>
+          <input id="title" type="text" placeholder="Ej: Preparar nota de formación" required />
+        </div>
+
+        <div class="field">
+          <label>Fecha límite</label>
+          <input id="dueDate" type="date" />
+        </div>
+
+        <div class="field">
+          <label>Prioridad</label>
+          <select id="priority">
+            <option value="Baja">Baja</option>
+            <option value="Media" selected>Media</option>
+            <option value="Alta">Alta</option>
+            <option value="Urgente">Urgente</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Responsable</label>
+          <input id="assignee" type="text" placeholder="Ej: Juan Carlos" />
+        </div>
+
+        <div class="field">
+          <label>Siguiente acción</label>
+          <input id="nextAction" type="text" placeholder="Ej: Llamar para confirmar documentación" />
+        </div>
+
+        <div class="field full">
+          <label>Descripción (opcional)</label>
+          <textarea id="details" rows="3" placeholder="Notas, contexto, enlaces, etc."></textarea>
+        </div>
+
+        <div class="actions full">
+          <button class="btn primary" type="submit">Guardar tarea</button>
+          <button id="btnReset" class="btn secondary" type="button">Limpiar</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="list-header">
+        <h2>Listado</h2>
+
+        <div class="filters">
+<select id="activeCompany" class="control">
+  <option value="ALL">Todas las empresas</option>
+</select>
+
+<button type="button" id="btnSetCompany" class="btn-secondary">Fijar</button>
+<button type="button" id="btnClearCompany" class="btn-secondary">Ver todas</button>
+          <input id="filterCompany" type="text" placeholder="Filtrar por empresa..." />
+          <select id="filterStatus">
+            <option value="ALL" selected>Todos</option>
+            <option value="PENDING">Pendientes</option>
+            <option value="DONE">Realizados</option>
+          </select>
+          <select id="sortBy">
+            <option value="createdDesc" selected>Más recientes</option>
+            <option value="dueAsc">Fecha límite (asc)</option>
+            <option value="priorityDesc">Prioridad (desc)</option>
+            <option value="companyAsc">Empresa (A-Z)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+<section class="dash">
+  <div class="dash-card">
+    <div class="dash-num" id="kpiPending">0</div>
+    <div class="dash-label">Pendientes</div>
+  </div>
+
+  <div class="dash-card">
+    <div class="dash-num" id="kpiProgress">0</div>
+    <div class="dash-label">En curso</div>
+  </div>
+
+  <div class="dash-card">
+    <div class="dash-num" id="kpiWaiting">0</div>
+    <div class="dash-label">Espera cliente</div>
+  </div>
+
+  <div class="dash-card">
+    <div class="dash-num" id="kpiDone">0</div>
+    <div class="dash-label">Realizados</div>
+  </div>
+</section>
+        <table class="tasks">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Empresa</th>
+              <th>Tarea</th>
+              <th>Prioridad</th>
+              <th>Fecha límite</th>
+              <th>Estado</th>
+              <th class="right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="taskTbody"></tbody>
+        </table>
+      </div>
+
+      <p class="muted small">Consejo: usa “Imprimir” para generar una Nota de trabajo pendiente con formato limpio.</p>
+    </section>
+  </main>
+
+  <!-- Plantilla de impresión -->
+  <section id="printArea" class="print-area" aria-hidden="true">
+    <div class="print-sheet">
+<div class="print-toolbar no-print">
+  <button type="button" id="btnPrintNow">Imprimir ahora</button>
+  <button type="button" id="btnPrintBack">Volver</button>
+</div>
+      <div class="print-head">
+  <div class="print-head-left">
+    <img src="img/logo-jcg.jpg" alt="Juan Carlos García" class="print-logo">
+    <div id="pHeaderOrg" class="print-org"></div>
+    <h2>Nota de trabajo</h2>
+  </div>
+
+  <div class="print-meta">
+    <div><strong>Código:</strong> <span id="pCode"></span></div>
+    <div><strong>Fecha creación:</strong> <span id="pCreated"></span></div>
+    <div><strong>Estado:</strong> <span id="pStatus"></span></div>
+  </div>
+</div>
+
+      <div class="print-block">
+        <div><strong>Empresa / Cliente:</strong> <span id="pCompany"></span></div>
+        <div><strong>Tarea:</strong> <span id="pTitle"></span></div>
+        <div><strong>Prioridad:</strong> <span id="pPriority"></span></div>
+        <div><strong>Fecha límite:</strong> <span id="pDue"></span></div>
+        <div><strong>Responsable:</strong> <span id="pAssignee"></span></div>
+      </div>
+
+      <div class="print-block">
+        <div><strong>Siguiente acción:</strong></div>
+        <div class="box" id="pNextAction"></div>
+      </div>
+
+      <div class="print-block">
+        <div><strong>Descripción / Notas:</strong></div>
+        <div class="box" id="pDetails"></div>
+      </div>
+
+      <div class="print-sign">
+        <div class="sign-box">
+          <div class="muted">Firma / Conforme</div>
+          <div class="line"></div>
+        </div>
+        <div class="sign-box">
+          <div class="muted">Fecha</div>
+          <div class="line"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
