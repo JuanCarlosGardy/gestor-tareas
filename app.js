@@ -6,6 +6,63 @@
    - Editar tareas
    - Imprimir nota de trabajo
 ========================= */
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const auth = window.firebaseAuth;
+
+const $ = (id) => document.getElementById(id);
+
+const authEmail = () => ($("authEmail")?.value || "").trim();
+const authPass = () => $("authPass")?.value || "";
+
+function setAuthStatus(msg) {
+  const el = $("authStatus");
+  if (el) el.textContent = msg || "";
+}
+
+async function doLogin() {
+  setAuthStatus("Entrando...");
+  await signInWithEmailAndPassword(auth, authEmail(), authPass());
+}
+
+async function doRegister() {
+  setAuthStatus("Creando usuario...");
+  await createUserWithEmailAndPassword(auth, authEmail(), authPass());
+}
+
+async function doLogout() {
+  setAuthStatus("Cerrando sesión...");
+  await signOut(auth);
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  $("btnLogin")?.addEventListener("click", async () => {
+    try { await doLogin(); } catch (e) { setAuthStatus(e.message); }
+  });
+
+  $("btnRegister")?.addEventListener("click", async () => {
+    try { await doRegister(); } catch (e) { setAuthStatus(e.message); }
+  });
+
+  $("btnLogout")?.addEventListener("click", async () => {
+    try { await doLogout(); } catch (e) { setAuthStatus(e.message); }
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      setAuthStatus(`Conectado: ${user.email}`);
+      if ($("btnLogout")) $("btnLogout").style.display = "inline-block";
+    } else {
+      setAuthStatus("Modo invitado (sin login)");
+      if ($("btnLogout")) $("btnLogout").style.display = "none";
+    }
+  });
+});
 console.log("Auth:", window.firebaseAuth);
 console.log("DB:", window.firebaseDB);
 const LS_KEY = "gtp_tasks_v2";
