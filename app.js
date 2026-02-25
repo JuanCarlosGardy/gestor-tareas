@@ -1,16 +1,169 @@
 /* =========================
-   Gestor de tareas por empresa
-   - LocalStorage
-   - Código con fecha: PT-YYYYMMDD-0001
+   Gestor de tareas por empresa (PRO)
+   - Firestore (cloud) + LocalStorage fallback
+   - Auth Email/Password (login)
+   - Código: PT-YYYYMMDD-0001
    - Estados avanzados
    - Editar tareas
    - Imprimir nota de trabajo
+========================= */
+
+/* ========= IMPORTS (SIEMPRE ARRIBA) ========= */
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ========= FIREBASE INSTANCES (desde index.html) ========= */
+const auth = window.firebaseAuth;
+const db = window.firebaseDB;
+
+if (!auth || !db) {
+  throw new Error("Firebase Auth/DB no disponibles. Revisa el orden de scripts en index.html.");
+}
+
+/* ========= HELPERS AUTH UI ========= */
+const $ = (id) => document.getElementById(id);
+
+const authEmail = () => ($("authEmail")?.value || "").trim();
+const authPass  = () => ($("authPass")?.value || "");
+
+function setAuthStatus(msg) {
+  const el = $("authStatus");
+  if (el) el.textContent = msg || "";
+}
+
+async function doLogin() {
+  setAuthStatus("Entrando...");
+  await signInWithEmailAndPassword(auth, authEmail(), authPass());
+}
+
+async function doRegister() {
+  setAuthStatus("Creando usuario...");
+  await createUserWithEmailAndPassword(auth, authEmail(), authPass());
+}
+
+async function doLogout() {
+  setAuthStatus("Cerrando sesión...");
+  await signOut(auth);
+}
+
+/* ===============================
+   FIRESTORE SYNC (1 usuario / multi-dispositivo)
+   Ruta: users/{uid}/tasks/{taskId}
+=============================== */
+let cloudUid = null;
+let unsubscribeCloud = null;
+
+function isCloudMode() {
+  return !!cloudUid;
+}
+
+function tasksCol(uid) {
+  return collection(db, "users", uid, "tasks");
+}
+
+function fromDoc(d) {
+  const data = d.data() || {};
+  return { id: d.id, ...data };
+}
+
+function toPayload(task) {
+  const payload = { ...task };
+  delete payload.id;
+
+  // Para orden estable en cloud: timestamp real
+  // (No rompe tu UI: tu UI sigue usando createdAt string)
+  payload.createdAtTs = payload.createdAtTs || serverTimestamp();
+  payload.updatedAtTs = serverTimestamp();
+
+  return payload;
+}
+
+async function cloudCreateTask(task) {
+  if (!cloudUid) throw new Error("No hay sesión iniciada.");
+  // Usamos setDoc con ID fijo para mantener tu id y no romper editar/imprimir
+  await setDoc(doc(db, "users", cloudUid, "tasks", task.id), toPayload(task), { merge: false });
+}
+
+async function cloudUpsertTask(taskId, patchOrFull) {
+  if (!cloudUid) throw new Error("No hay sesión iniciada.");
+  // merge true para actualizar parcial o total sin borrar campos
+  await setDoc(doc(db, "users", cloudUid, "tasks", taskId), toPayload({ id: taskId, ...patchOrFull }), { merge: true });
+}
+
+async function cloudPatchTask(taskId, patch) {
+  if (!cloudUid) throw new Error("No hay sesión iniciada.");
+  await updateDoc(doc(db, "users", cloudUid, "tasks", taskId), {
+    ...patch,
+    updatedAtTs: serverTimestamp(),
+  });
+}
+
+async function cloudDeleteTask(taskId) {
+  if (!cloudUid) throw new Error("No hay sesión iniciada.");
+  await deleteDoc(doc(db, "users", cloudUid, "tasks", taskId));
+}
+
+async function cloudClearAll() {
+  if (!cloudUid) throw new Error("No hay sesión iniciada.");
+  const snap = await getDocs(tasksCol(cloudUid));
+  const deletions = snap.docs.map(d => deleteDoc(d.ref));
+  await Promise.all(deletions);
+}
+
+function startCloudListener(onTasks) {
+  if (!cloudUid) return;
+  if (unsubscribeCloud) unsubscribeCloud();
+
+  // Orden por timestamp real, y si no existe (tareas viejas), Firestore las pondrá al final
+  const q = query(tasksCol(cloudUid), orderBy("createdAtTs", "asc"));
+
+  unsubscribeCloud = onSnapshot(q, (snap) => {
+    const list = snap.docs.map(fromDoc);
+
+    // Normalizamos para que tu UI nunca reviente aunque falten campos
+    const normalized = list.map(t => ({
+      status: "PENDING",
+      doneAt: "",
+      priority: "Media",
+      dueDate: "",
+      assignee: "",
+      nextAction: "",
+      details: "",
+      ...t,
+      // Asegurar createdAt string si faltase (por si alguna vieja)
+      createdAt: t.createdAt || "",
+    }));
+
+    onTasks(normalized);
+  });
+}
+
+/* =========================
+   APP PRO ORIGINAL (con mínima adaptación Cloud)
 ========================= */
 
 const LS_KEY = "gtp_tasks_v2";
 
 const el = (id) => document.getElementById(id);
 const activeCompanyLabel = el("activeCompanyLabel");
+
 // --- elementos UI
 const form = el("taskForm");
 const tbody = el("taskTbody");
@@ -39,7 +192,7 @@ const fields = {
   details: el("details"),
 };
 
-let tasks = loadTasks();
+let tasks = [];                  // ahora se setea por login: local o cloud
 let activeCompanyValue = "ALL";
 let editingId = null;
 const submitBtn = form?.querySelector('button[type="submit"]');
@@ -83,10 +236,9 @@ function escapeHtml(str){
 }
 
 // -------------------------
-// LocalStorage
+// LocalStorage (fallback)
 // -------------------------
 function loadTasks(){
-  // Intento v2
   try{
     const raw = localStorage.getItem(LS_KEY);
     if(raw){
@@ -114,6 +266,8 @@ function loadTasks(){
 }
 
 function saveTasks(){
+  // Si estamos en cloud, NO guardamos en local.
+  if (isCloudMode()) return;
   localStorage.setItem(LS_KEY, JSON.stringify(tasks));
 }
 
@@ -185,36 +339,42 @@ function createTaskFromForm(){
     nextAction: fields.nextAction.value.trim(),
     details: fields.details.value.trim(),
     createdAt: nowISO(),
+    // Para cloud: marca createdAtTs real (siempre que creemos desde UI)
+    createdAtTs: serverTimestamp(),
     doneAt: status === "DONE" ? nowISO() : "",
   };
 }
 
-function updateTaskFromForm(id){
+async function updateTaskFromForm(id){
   const company = fields.company.value.trim();
   const title = fields.title.value.trim();
   if(!company || !title) return false;
 
-  tasks = tasks.map(t => {
-    if(t.id !== id) return t;
+  const old = tasks.find(t => t.id === id);
+  const newStatus = fields.status ? (fields.status.value || "PENDING") : (old?.status || "PENDING");
 
-    const newStatus = fields.status ? (fields.status.value || "PENDING") : (t.status || "PENDING");
-    const wasDone = (t.status === "DONE");
-    const nowDone = (newStatus === "DONE");
+  const wasDone = (old?.status === "DONE");
+  const nowDone = (newStatus === "DONE");
 
-    return {
-      ...t,
-      company,
-      title,
-      dueDate: fields.dueDate.value || "",
-      priority: fields.priority.value || "Media",
-      status: newStatus,
-      assignee: fields.assignee.value.trim(),
-      nextAction: fields.nextAction.value.trim(),
-      details: fields.details.value.trim(),
-      doneAt: nowDone ? (wasDone ? (t.doneAt || nowISO()) : nowISO()) : "",
-    };
-  });
+  const patch = {
+    company,
+    title,
+    dueDate: fields.dueDate.value || "",
+    priority: fields.priority.value || "Media",
+    status: newStatus,
+    assignee: fields.assignee.value.trim(),
+    nextAction: fields.nextAction.value.trim(),
+    details: fields.details.value.trim(),
+    doneAt: nowDone ? (wasDone ? (old?.doneAt || nowISO()) : nowISO()) : "",
+  };
 
+  if (isCloudMode()) {
+    await cloudUpsertTask(id, patch);
+    exitEditMode();
+    return true;
+  }
+
+  tasks = tasks.map(t => (t.id !== id ? t : { ...t, ...patch }));
   saveTasks();
   render();
   exitEditMode();
@@ -224,20 +384,22 @@ function updateTaskFromForm(id){
 // -------------------------
 // Estados
 // -------------------------
-function setTaskStatus(id, status){
-  tasks = tasks.map(t => {
-    if(t.id !== id) return t;
+async function setTaskStatus(id, status){
+  const old = tasks.find(t => t.id === id);
 
-    const next = { ...t, status };
+  const patch = {
+    status,
+    doneAt: (status === "DONE")
+      ? (old?.doneAt || nowISO())
+      : "",
+  };
 
-    if(status === "DONE"){
-      if(!t.doneAt) next.doneAt = nowISO();
-    }else{
-      next.doneAt = "";
-    }
-    return next;
-  });
+  if (isCloudMode()) {
+    await cloudPatchTask(id, patch);
+    return;
+  }
 
+  tasks = tasks.map(t => (t.id !== id ? t : { ...t, ...patch }));
   saveTasks();
   render();
 }
@@ -267,9 +429,9 @@ function applyFiltersAndSort(list){
   if(qCompany){
     out = out.filter(t => (t.company || "").toLowerCase().includes(qCompany));
   }
-if(activeCompanyValue !== "ALL"){
-  out = out.filter(t => (t.company || "") === activeCompanyValue);
-}
+  if(activeCompanyValue !== "ALL"){
+    out = out.filter(t => (t.company || "") === activeCompanyValue);
+  }
   if(status !== "ALL"){
     out = out.filter(t => (t.status || "PENDING") === status);
   }
@@ -313,6 +475,7 @@ function updateDashboard(){
   if(w) w.textContent = String(counts.WAITING_CLIENT);
   if(d) d.textContent = String(counts.DONE);
 }
+
 function getCompanies(){
   const set = new Set();
   for(const t of tasks){
@@ -331,33 +494,33 @@ function refreshCompanySelector(){
   activeCompany.innerHTML = `<option value="ALL">Todas las empresas</option>` +
     companies.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
 
-  // mantener selección si existe
   const stillExists = companies.includes(current);
   activeCompany.value = stillExists ? current : "ALL";
 }
+
 function applyActiveCompanyToForm(){
-  // No tocar el formulario si estamos editando una tarea
   if(editingId) return;
 
-  // Si hay empresa activa, la ponemos en el campo Empresa
   if(activeCompanyValue !== "ALL"){
     if(fields.company) fields.company.value = activeCompanyValue;
   }else{
-    // Si no hay empresa activa, dejamos el campo libre
     if(fields.company) fields.company.value = "";
   }
 }
+
 function render(){
   const view = applyFiltersAndSort(tasks);
-updateDashboard();
-refreshCompanySelector();
-if(activeCompanyLabel){
-  if(activeCompanyValue === "ALL"){
-    activeCompanyLabel.textContent = "📌 Todas las empresas";
-  }else{
-    activeCompanyLabel.textContent = "📌 Empresa activa: " + activeCompanyValue;
+  updateDashboard();
+  refreshCompanySelector();
+
+  if(activeCompanyLabel){
+    if(activeCompanyValue === "ALL"){
+      activeCompanyLabel.textContent = "📌 Todas las empresas";
+    }else{
+      activeCompanyLabel.textContent = "📌 Empresa activa: " + activeCompanyValue;
+    }
   }
-}
+
   tbody.innerHTML = view.map(t => `
     <tr>
       <td>
@@ -405,7 +568,6 @@ if(activeCompanyLabel){
 // Imprimir
 // -------------------------
 function fillPrint(task){
-  // Cabecera opcional (si existe en tu HTML)
   const headerEl = el("pHeaderOrg");
   if(headerEl){
     const PRINT_HEADER = [
@@ -457,19 +619,23 @@ function printTask(id){
 // -------------------------
 // Eventos
 // -------------------------
-form.addEventListener("submit", (e) => {
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  // Guardar edición
   if(editingId){
-    const ok = updateTaskFromForm(editingId);
+    const ok = await updateTaskFromForm(editingId);
     if(!ok) return;
     return;
   }
 
-  // Crear nueva
   const task = createTaskFromForm();
   if(!task) return;
+
+  if (isCloudMode()) {
+    await cloudCreateTask(task);
+    resetForm();
+    return; // onSnapshot refresca
+  }
 
   tasks.unshift(task);
   saveTasks();
@@ -482,15 +648,24 @@ btnReset.addEventListener("click", () => {
   else resetForm();
 });
 
-btnClearAll?.addEventListener("click", () => {
-  const ok = confirm("Esto borrará todas las tareas guardadas en este navegador. ¿Continuar?");
+btnClearAll?.addEventListener("click", async () => {
+  const ok = confirm(isCloudMode()
+    ? "Esto borrará todas las tareas guardadas en la nube (Firestore). ¿Continuar?"
+    : "Esto borrará todas las tareas guardadas en este navegador. ¿Continuar?"
+  );
   if(!ok) return;
+
+  if (isCloudMode()) {
+    await cloudClearAll();
+    return; // onSnapshot refresca
+  }
+
   tasks = [];
   saveTasks();
   render();
 });
 
-tbody.addEventListener("click", (e) => {
+tbody.addEventListener("click", async (e) => {
   const btn = e.target.closest("button");
   if(!btn) return;
 
@@ -512,12 +687,16 @@ tbody.addEventListener("click", (e) => {
 
   if(action === "delete"){
     const ok = confirm("¿Eliminar esta tarea?");
-    if(ok) deleteTask(id);
-    return;
+    if(!ok) return;
+    return deleteTask(id);
   }
 });
 
-function deleteTask(id){
+async function deleteTask(id){
+  if (isCloudMode()) {
+    await cloudDeleteTask(id);
+    return; // onSnapshot refresca
+  }
   tasks = tasks.filter(t => t.id !== id);
   saveTasks();
   render();
@@ -529,6 +708,7 @@ function deleteTask(id){
   ctrl.addEventListener("input", render);
   ctrl.addEventListener("change", render);
 });
+
 btnSetCompany?.addEventListener("click", () => {
   if(!activeCompany) return;
   activeCompanyValue = activeCompany.value || "ALL";
@@ -543,24 +723,25 @@ btnSetCompany?.addEventListener("click", () => {
 btnClearCompany?.addEventListener("click", () => {
   activeCompanyValue = "ALL";
   if(activeCompany) activeCompany.value = "ALL";
-applyActiveCompanyToForm();
+  applyActiveCompanyToForm();
   render();
 });
+
 activeCompany?.addEventListener("change", () => {
   activeCompanyValue = activeCompany.value || "ALL";
 
-  // opcional: sincroniza el filtro de texto para comodidad
   if(activeCompanyValue !== "ALL" && filterCompany){
     filterCompany.value = activeCompanyValue;
   }
   if(activeCompanyValue === "ALL" && filterCompany){
     filterCompany.value = "";
   }
-applyActiveCompanyToForm();
+
+  applyActiveCompanyToForm();
   render();
 });
 
-// Export/Import
+// Export/Import (solo local; si quieres, luego lo hacemos cloud también)
 btnExport.addEventListener("click", () => {
   const payload = {
     exportedAt: nowISO(),
@@ -589,24 +770,43 @@ fileImport.addEventListener("change", async () => {
     const data = JSON.parse(text);
     if(!data || !Array.isArray(data.tasks)) throw new Error("Formato no válido");
 
-    const ok = confirm("Esto importará tareas y reemplazará las actuales en este navegador. ¿Continuar?");
+    const ok = confirm(isCloudMode()
+      ? "Esto importará tareas a la nube y reemplazará las actuales. ¿Continuar?"
+      : "Esto importará tareas y reemplazará las actuales en este navegador. ¿Continuar?"
+    );
     if(!ok) return;
 
-    tasks = data.tasks.map(t => ({
+    const imported = data.tasks.map(t => ({
       ...t,
       status: t.status || "PENDING",
       doneAt: t.doneAt || "",
     }));
 
+    if (isCloudMode()) {
+      await cloudClearAll();
+      for (const t of imported) {
+        // asegurar id
+        const task = { ...t, id: t.id || (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random()) };
+        if (!task.createdAt) task.createdAt = nowISO();
+        task.createdAtTs = serverTimestamp();
+        await cloudCreateTask(task);
+      }
+      exitEditMode();
+      return;
+    }
+
+    tasks = imported;
     saveTasks();
     render();
     exitEditMode();
+
   }catch{
     alert("No se pudo importar. Asegúrate de seleccionar un JSON exportado desde esta herramienta.");
   }finally{
     fileImport.value = "";
   }
 });
+
 btnPrintNow?.addEventListener("click", () => {
   window.print();
 });
@@ -615,11 +815,55 @@ btnPrintBack?.addEventListener("click", () => {
   hidePrintPreview();
 });
 
-// Por si cierras el diálogo de imprimir, que vuelva a la app
 window.addEventListener("afterprint", () => {
   hidePrintPreview();
 });
-/* init */
-refreshCompanySelector();
-applyActiveCompanyToForm();
-render();
+
+/* ========= INIT UI ========= */
+function initUI() {
+  refreshCompanySelector();
+  applyActiveCompanyToForm();
+  render();
+}
+
+/* ========= AUTH + SYNC BOOTSTRAP ========= */
+window.addEventListener("DOMContentLoaded", () => {
+  $("btnLogin")?.addEventListener("click", async () => {
+    try { await doLogin(); } catch (e) { setAuthStatus(e.message); }
+  });
+
+  $("btnRegister")?.addEventListener("click", async () => {
+    try { await doRegister(); } catch (e) {
+      if (String(e?.code).includes("auth/email-already-in-use")) {
+        setAuthStatus("Este email ya está registrado. Pulsa ENTRAR.");
+      } else {
+        setAuthStatus(e.message);
+      }
+    }
+  });
+
+  $("btnLogout")?.addEventListener("click", async () => {
+    try { await doLogout(); } catch (e) { setAuthStatus(e.message); }
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    cloudUid = user?.uid || null;
+
+    if (user) {
+      setAuthStatus(`Conectado: ${user.email}`);
+      if ($("btnLogout")) $("btnLogout").style.display = "inline-block";
+
+      startCloudListener((cloudTasks) => {
+        tasks = cloudTasks;
+        initUI();
+      });
+
+    } else {
+      setAuthStatus("Modo invitado (sin login)");
+      if ($("btnLogout")) $("btnLogout").style.display = "none";
+
+      tasks = loadTasks();
+      initUI();
+    }
+  });
+});
