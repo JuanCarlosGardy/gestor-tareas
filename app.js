@@ -53,7 +53,7 @@ window.addEventListener("DOMContentLoaded", () => {
     try { await doLogout(); } catch (e) { setAuthStatus(e.message); }
   });
 
-  onAuthStateChanged(auth, (user) => {
+  (auth, (user) => {
     if (user) {
       setAuthStatus(`Conectado: ${user.email}`);
       if ($("btnLogout")) $("btnLogout").style.display = "inline-block";
@@ -114,7 +114,6 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import {
-  onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const auth = window.firebaseAuth;
