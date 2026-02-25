@@ -24,7 +24,33 @@
 </label>
 </div>
   </header>
+<section id="authPanel" style="max-width:1100px;margin:16px auto;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:12px;">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;">
+    <div style="flex:1;min-width:220px;">
+      <label style="display:block;font-size:12px;opacity:.8;margin-bottom:6px;">Email</label>
+      <input id="authEmail" type="email" placeholder="tu@email.com" style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.2);color:#fff;">
+    </div>
 
+    <div style="flex:1;min-width:220px;">
+      <label style="display:block;font-size:12px;opacity:.8;margin-bottom:6px;">Contraseña</label>
+      <input id="authPass" type="password" placeholder="••••••••" style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.2);color:#fff;">
+    </div>
+
+    <button id="btnLogin" type="button" style="padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;">
+      Entrar
+    </button>
+
+    <button id="btnRegister" type="button" style="padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;">
+      Registrarme
+    </button>
+
+    <button id="btnLogout" type="button" style="padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;display:none;">
+      Salir
+    </button>
+
+    <div id="authStatus" style="font-size:12px;opacity:.85;min-width:220px;"></div>
+  </div>
+</section>
   <main class="container">
     <section class="card">
       <h2>Nueva tarea</h2>
