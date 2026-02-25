@@ -198,5 +198,28 @@
   </section>
 
   <script src="app.js"></script>
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK8E4pNl58h9jw-cQhOTAyAv8BLmPYMEA",
+    authDomain: "gestor-tareas-jcg.firebaseapp.com",
+    projectId: "gestor-tareas-jcg",
+    storageBucket: "gestor-tareas-jcg.firebasestorage.app",
+    messagingSenderId: "675143698125",
+    appId: "1:675143698125:web:4654106fe43e612ee78b84",
+    measurementId: "G-8ZSR85E6QH"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window.firebaseApp = app;
+  window.firebaseAuth = auth;
+  window.firebaseDB = db;
+</script>
 </body>
 </html>
