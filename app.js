@@ -14,6 +14,20 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const auth = window.firebaseAuth;
+import {
+  collection,
+  doc,
+  addDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 const db = window.firebaseDB;
 const $ = (id) => document.getElementById(id);
 
@@ -113,19 +127,6 @@ const fields = {
 // ===============================
 // FIRESTORE SYNC (1 usuario / multi-dispositivo)
 // ===============================
-import {
-  collection,
-  doc,
-  addDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  getDocs,
-  onSnapshot,
-  query,
-  orderBy,
-  serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 if (!auth || !db) {
   throw new Error("Firebase Auth/DB no disponibles. Revisa el orden en index.html.");
