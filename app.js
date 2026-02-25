@@ -113,9 +113,6 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import {
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
 const auth = window.firebaseAuth;
 const db = window.firebaseDB;
 
