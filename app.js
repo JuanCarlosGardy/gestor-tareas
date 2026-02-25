@@ -14,7 +14,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const auth = window.firebaseAuth;
-
+const db = window.firebaseDB;
 const $ = (id) => document.getElementById(id);
 
 const authEmail = () => ($("authEmail")?.value || "").trim();
@@ -53,7 +53,7 @@ window.addEventListener("DOMContentLoaded", () => {
     try { await doLogout(); } catch (e) { setAuthStatus(e.message); }
   });
 
-  (auth, (user) => {
+   onAuthStateChanged(auth, (user) => {
     if (user) {
       setAuthStatus(`Conectado: ${user.email}`);
       if ($("btnLogout")) $("btnLogout").style.display = "inline-block";
@@ -112,9 +112,6 @@ import {
   orderBy,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const auth = window.firebaseAuth;
-const db = window.firebaseDB;
 
 if (!auth || !db) {
   throw new Error("Firebase Auth/DB no disponibles. Revisa el orden en index.html.");
