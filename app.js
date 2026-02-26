@@ -859,11 +859,21 @@ window.addEventListener("DOMContentLoaded", () => {
       });
 
     } else {
-      setAuthStatus("Modo invitado (sin login)");
-      if ($("btnLogout")) $("btnLogout").style.display = "none";
+  setAuthStatus("Debes iniciar sesión para usar la aplicación.");
+  if ($("btnLogout")) $("btnLogout").style.display = "none";
 
-      tasks = loadTasks();
-      initUI();
-    }
+  // Vaciar datos en pantalla
+  tasks = [];
+  initUI();
+
+  // Bloquear formulario y acciones
+  const f = $("taskForm");
+  if (f) f.querySelectorAll("input, select, textarea, button").forEach(x => x.disabled = true);
+
+  // Opcional: bloquear export/import también
+  if (btnExport) btnExport.disabled = true;
+  if (fileImport) fileImport.disabled = true;
+  if (btnClearAll) btnClearAll.disabled = true;
+}
   });
 });
