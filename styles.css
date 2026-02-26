@@ -354,3 +354,19 @@ table.tasks td .small{
 table.tasks td{
   color: var(--text);
 }
+/* FIX: evitar que la nota se parta en 2 páginas por márgenes/padding */
+@media print{
+  @page{ margin: 8mm; }                 /* antes 12mm */
+  .print-sheet{ padding: 10mm !important; }  /* antes 16mm */
+
+  /* evita “hoja A4 fija” que puede forzar página extra */
+  .print-sheet{ min-height: auto !important; height: auto !important; }
+
+  /* intenta mantener bloques juntos */
+  .print-head,
+  .print-block,
+  .box{
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
