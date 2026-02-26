@@ -832,7 +832,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
   onAuthStateChanged(auth, (user) => {
      const MI_EMAIL = "juancarlosgardy6@gmail.com";
-
+console.log("MI UID:", user.uid);
 if (user && user.email !== MI_EMAIL) {
   await signOut(auth);
   setAuthStatus("Usuario no autorizado.");
