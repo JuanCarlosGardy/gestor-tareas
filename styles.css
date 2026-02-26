@@ -210,175 +210,57 @@ table.tasks{
 @media (max-width: 900px){
   .dash{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* =========================
+   IMPRESIÓN (solo cuando imprimes)
+   ========================= */
 @media print{
-/* EN PANTALLA: el área de impresión NO se ve */
-.print-area{ display:none; }
-  /* Oculta la app y cualquier barra/botón al imprimir */
-  .app-header, .container,
-  .print-toolbar,
-  #authBar, #authBox,
-  .no-print,
-  button, .btn, .toolbar, .topbar, header, nav{
-    display:none !important;
-  }
-
   body{ background:#fff !important; color:#000 !important; }
 
-  /* Oculta todo */
-  body *{ visibility:hidden !important; }
+  /* Oculta todo por defecto */
+  body *{
+    visibility: hidden !important;
+  }
 
   /* Muestra solo el área de impresión */
-  #printArea, #printArea *{ visibility:visible !important; }
+  #printArea, #printArea *{
+    visibility: visible !important;
+  }
 
+  /* Coloca el printArea arriba y limpio */
   #printArea{
-    position:absolute !important;
-    left:0 !important;
-    top:0 !important;
-    width:100% !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
     background:#fff !important;
   }
 
-  /* Quita la firma si existe */
-  .firma, .firmas, .signature, .sign-row, .print-sign, #firma, #firmas{
-    display:none !important;
+  /* Oculta cualquier barra/botón */
+  .print-toolbar,
+  #authBar, #authBox,
+  .no-print,
+  button, .btn, .toolbar, .topbar,
+  header, nav{
+    display: none !important;
   }
- /* Ocultamos la app normal */
-  .app-header, .container{ display:none !important; }
+
+  /* Elimina firma si existe */
+  .print-sign, .firma, .firmas, .signature, .sign-row, #firma, #firmas{
+    display: none !important;
+  }
+
   @page{ margin:12mm; }
 }
-  /* Mostramos la plantilla de impresión */
-  #printArea, .print-area{
-    display:block !important;
-    padding: 0 !important;
-  }
 
-  .print-sheet{
-    padding: 16mm;
-    font-family: Arial, sans-serif;
-    color:#000;
-  }
-
-  /* Cabecera */
-  .print-head{
-    display:flex;
-    align-items:flex-start;
-    justify-content: space-between;
-    gap: 12px;
-    border-bottom: 1px solid #000;
-    padding-bottom: 8mm;
-    margin-bottom: 8mm;
-  }
-
-  .print-head-left{
-    display:flex;
-    flex-direction:column;
-    align-items:flex-start;
-    gap: 2mm;
-  }
-
-  .print-logo{
-    width: 45mm;
-    height: auto;
-    margin-bottom: 2mm;
-  }
-
-  .print-org{
-    font-size: 12px;
-    white-space: pre-wrap;
-  }
-
-  .print-head h2{ margin:0; font-size: 18px; }
-
-  .print-meta{
-    font-size: 12px;
-    text-align: right;
-    display:grid;
-    gap: 2mm;
-  }
-
-  .print-block{
-    margin-bottom: 8mm;
-    font-size: 12px;
-    display:grid;
-    gap: 3mm;
-  }
-
-  .box{
-    min-height: 25mm;
-    border: 1px solid #000;
-    padding: 4mm;
-    white-space: pre-wrap;
-  }
-
-  .print-sign{
-    margin-top: 10mm;
-    display:flex;
-    gap: 12mm;
-    justify-content: space-between;
-  }
-
-  .sign-box{ width: 48%; }
-
-  .line{
-    border-bottom: 1px solid #000;
-    height: 14mm;
-  }
-
-  .muted{ color:#333; }
-}
-html, body{
-  height: auto !important;
-}
-
-#printArea, .print-area{
-  break-after: avoid-page !important;
-  page-break-after: avoid !important;
-}
-
-.print-sheet{
-  break-after: avoid-page !important;
-  page-break-after: avoid !important;
-}
-/* Forzar visibilidad del icono de calendario en fondos oscuros (Chrome/Safari) */
-input[type="date"]::-webkit-calendar-picker-indicator{
-  filter: invert(1);
-  opacity: 0.9;
-  cursor: pointer;
-}
-/* Vista previa de impresión dentro del programa */
-.print-area{
-  display:none;
-}
-
-body.print-preview .app-header,
-body.print-preview .container{
-  display:none;
-}
-
-body.print-preview .print-area{
-  display:block;
-  padding: 16px;
-}
-
-.print-toolbar{
-  display:flex;
-  gap: 10px;
-  margin: 10px auto 16px;
-  max-width: 900px;
-}
-
-.print-toolbar button{
-  padding: 10px 14px;
-  border-radius: 10px;
-}
 /* =========================
-   Vista previa A4 (pantalla)
+   PREVIEW (pantalla): cuando el body tiene .print-preview
    ========================= */
+.print-area{ display:none; }
+
 body.print-preview{
-  background: #f2f2f2;
+  background:#f2f2f2;
 }
 
-/* en vista previa, mostramos solo el área de impresión */
 body.print-preview .app-header,
 body.print-preview .container{
   display:none !important;
@@ -386,127 +268,76 @@ body.print-preview .container{
 
 body.print-preview .print-area{
   display:block !important;
-  padding: 16px;
+  padding:16px;
 }
 
-/* hoja A4 centrada */
 body.print-preview .print-sheet{
   background:#fff;
   color:#000;
-  width: 210mm;
-  min-height: 297mm;
-  margin: 0 auto;
-  padding: 16mm;
-  box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  width:210mm;
+  min-height:297mm;
+  margin:0 auto;
+  padding:16mm;
+  box-shadow:0 10px 30px rgba(0,0,0,.25);
 }
 
-/* cabecera en preview igual que en print */
 body.print-preview .print-head{
   display:flex;
   align-items:flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid #000;
-  padding-bottom: 8mm;
-  margin-bottom: 8mm;
+  justify-content:space-between;
+  gap:12px;
+  border-bottom:1px solid #000;
+  padding-bottom:8mm;
+  margin-bottom:8mm;
 }
 
 body.print-preview .print-head-left{
   display:flex;
   flex-direction:column;
   align-items:flex-start;
-  gap: 2mm;
+  gap:2mm;
 }
 
 body.print-preview .print-logo{
-  width: 45mm;
-  height: auto;
-  margin-bottom: 2mm;
+  width:45mm;
+  height:auto;
+  margin-bottom:2mm;
 }
 
 body.print-preview .print-org{
-  font-size: 12px;
-  white-space: pre-wrap;
-}
-
-body.print-preview .print-head h2{
-  margin:0;
-  font-size: 18px;
+  font-size:12px;
+  white-space:pre-wrap;
 }
 
 body.print-preview .print-meta{
-  font-size: 12px;
-  text-align: right;
+  font-size:12px;
+  text-align:right;
   display:grid;
-  gap: 2mm;
+  gap:2mm;
 }
 
 body.print-preview .print-block{
-  margin-bottom: 8mm;
-  font-size: 12px;
+  margin-bottom:8mm;
+  font-size:12px;
   display:grid;
-  gap: 3mm;
+  gap:3mm;
 }
 
 body.print-preview .box{
-  min-height: 25mm;
-  border: 1px solid #000;
-  padding: 4mm;
-  white-space: pre-wrap;
+  min-height:25mm;
+  border:1px solid #000;
+  padding:4mm;
+  white-space:pre-wrap;
 }
 
-body.print-preview .print-sign{
-  margin-top: 10mm;
+body.print-preview .print-toolbar{
   display:flex;
-  gap: 12mm;
-  justify-content: space-between;
-}
-
-body.print-preview .sign-box{ width: 48%; }
-
-body.print-preview .line{
-  border-bottom: 1px solid #000;
-  height: 14mm;
-}
-
-/* barra de botones de preview */
-.print-toolbar{
-  display:flex;
-  gap: 10px;
-  margin: 10px auto 16px;
-  max-width: 210mm;
-}
-.tools{
-  display:flex;
-  align-items:center;
   gap:10px;
+  margin:10px auto 16px;
+  max-width:210mm;
 }
 
-.tools-label{
-  font-size:12px;
-  opacity:.6;
-  margin-right:4px;
-}
-
-.btn-secondary{
-  background: rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.15);
+body.print-preview .print-toolbar button{
+  padding:10px 14px;
   border-radius:10px;
-  padding:8px 12px;
-  color: #ffffff;          /* ← AÑADIR ESTO */
-  font-weight: 500;
-}
-
-.file-btn{
-  cursor:pointer;
-}
-/* Selector empresa activa */
-#activeCompany{
-  min-width: 220px;
-}
-.active-company-label{
-  margin-top: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  opacity: 0.8;
 }
