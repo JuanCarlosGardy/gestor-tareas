@@ -213,6 +213,33 @@ table.tasks{
 @media print{
 .no-print{ display:none !important; }
   body{ background:#fff; color:#000; }
+  @media print {
+  /* 1) Oculta TODO por defecto */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* 2) Muestra SOLO el área de impresión */
+  #printArea, #printArea * {
+    visibility: visible !important;
+  }
+
+  /* 3) Coloca el printArea arriba del todo, sin márgenes raros */
+  #printArea {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+  }
+
+  /* 4) Oculta botones/controles de la app por si están dentro */
+  button, .btn, .toolbar, .topbar, header, nav {
+    display: none !important;
+  }
+
+  /* 5) Ajustes opcionales para que no genere 2 páginas por padding/margen */
+  @page { margin: 12mm; }
+}
 
   /* Ocultamos la app normal */
   .app-header, .container{ display:none !important; }
