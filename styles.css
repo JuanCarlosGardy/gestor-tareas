@@ -341,3 +341,16 @@ body.print-preview .print-toolbar button{
   padding:10px 14px;
   border-radius:10px;
 }
+/* FIX CONTRASTE TEXTO SECUNDARIO EN TABLA */
+table.tasks .muted,
+table.tasks .small,
+table.tasks td .muted,
+table.tasks td .small{
+  color: var(--muted) !important;
+  opacity: 1 !important;
+}
+
+/* Por si algún contenedor baja el color base */
+table.tasks td{
+  color: var(--text);
+}
