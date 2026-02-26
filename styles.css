@@ -210,11 +210,9 @@ table.tasks{
 @media (max-width: 900px){
   .dash{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+@media print{
 /* EN PANTALLA: el área de impresión NO se ve */
 .print-area{ display:none; }
-
-@media print{
-
   /* Oculta la app y cualquier barra/botón al imprimir */
   .app-header, .container,
   .print-toolbar,
