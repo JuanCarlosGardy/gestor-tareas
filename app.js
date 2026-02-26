@@ -830,31 +830,35 @@ window.addEventListener("DOMContentLoaded", () => {
     try { await doLogout(); } catch (e) { setAuthStatus(e.message); }
   });
 
-  onAuthStateChanged(auth, (user) => {
-     const MI_EMAIL = "juancarlosgardy6@gmail.com";
-console.log("MI UID:", user.uid);
-if (user && user.email !== MI_EMAIL) {
-  await signOut(auth);
-  setAuthStatus("Usuario no autorizado.");
-  return;
-}
-    cloudUid = user?.uid || null;
+onAuthStateChanged(auth, async (user) => {
+  const MI_EMAIL = "juancarlosgardy6@gmail.com";
 
-    if (user) {
-      setAuthStatus(`Conectado: ${user.email}`);
-       // Re-activar UI
-const f = $("taskForm");
-if (f) f.querySelectorAll("input, select, textarea, button").forEach(x => x.disabled = false);
+  if (user && user.email !== MI_EMAIL) {
+    await signOut(auth);
+    setAuthStatus("Usuario no autorizado.");
+    return;
+  }
 
-if (btnExport) btnExport.disabled = false;
-if (fileImport) fileImport.disabled = false;
-if (btnClearAll) btnClearAll.disabled = false;
-      if ($("btnLogout")) $("btnLogout").style.display = "inline-block";
+  if (user) {
+    console.log("MI UID:", user.uid);   // ← AQUÍ VA
 
-      startCloudListener((cloudTasks) => {
-        tasks = cloudTasks;
-        initUI();
-      });
+    cloudUid = user.uid;
+
+    setAuthStatus(`Conectado: ${user.email}`);
+    if ($("btnLogout")) $("btnLogout").style.display = "inline-block";
+
+    startCloudListener((cloudTasks) => {
+      tasks = cloudTasks;
+      initUI();
+    });
+
+  } else {
+    setAuthStatus("Debes iniciar sesión para usar la aplicación.");
+    cloudUid = null;
+    tasks = [];
+    initUI();
+  }
+});
 
     } else {
   setAuthStatus("Debes iniciar sesión para usar la aplicación.");
