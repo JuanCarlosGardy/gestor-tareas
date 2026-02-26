@@ -210,38 +210,42 @@ table.tasks{
 @media (max-width: 900px){
   .dash{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* EN PANTALLA: el área de impresión NO se ve */
+.print-area{ display:none; }
+
 @media print{
-  /* Oculta la zona de firma si existe */
-  .firma, .firmas, .signature, .sign-row, .print-sign, #firma, #firmas {
-    display: none !important;
-  }
-.no-print{ display:none !important; }
-  body{ background:#fff; color:#000; }
-    /* 1) Oculta TODO por defecto */
-  body * {
-    visibility: hidden !important;
+
+  /* Oculta la app y cualquier barra/botón al imprimir */
+  .app-header, .container,
+  .print-toolbar,
+  #authBar, #authBox,
+  .no-print,
+  button, .btn, .toolbar, .topbar, header, nav{
+    display:none !important;
   }
 
-  /* 2) Muestra SOLO el área de impresión */
-  #printArea, #printArea * {
-    visibility: visible !important;
+  body{ background:#fff !important; color:#000 !important; }
+
+  /* Oculta todo */
+  body *{ visibility:hidden !important; }
+
+  /* Muestra solo el área de impresión */
+  #printArea, #printArea *{ visibility:visible !important; }
+
+  #printArea{
+    position:absolute !important;
+    left:0 !important;
+    top:0 !important;
+    width:100% !important;
+    background:#fff !important;
   }
 
-  /* 3) Coloca el printArea arriba del todo, sin márgenes raros */
-  #printArea {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100% !important;
+  /* Quita la firma si existe */
+  .firma, .firmas, .signature, .sign-row, .print-sign, #firma, #firmas{
+    display:none !important;
   }
 
-  /* 4) Oculta botones/controles de la app por si están dentro */
-  button, .btn, .toolbar, .topbar, header, nav {
-    display: none !important;
-  }
-
-  /* 5) Ajustes opcionales para que no genere 2 páginas por padding/margen */
-  @page { margin: 12mm; }
+  @page{ margin:12mm; }
 }
 
   /* Ocultamos la app normal */
