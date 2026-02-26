@@ -244,13 +244,10 @@ table.tasks{
   .firma, .firmas, .signature, .sign-row, .print-sign, #firma, #firmas{
     display:none !important;
   }
-
+ /* Ocultamos la app normal */
+  .app-header, .container{ display:none !important; }
   @page{ margin:12mm; }
 }
-
-  /* Ocultamos la app normal */
-  .app-header, .container{ display:none !important; }
-
   /* Mostramos la plantilla de impresión */
   #printArea, .print-area{
     display:block !important;
