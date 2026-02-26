@@ -211,10 +211,13 @@ table.tasks{
   .dash{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media print{
+  /* Oculta la zona de firma si existe */
+  .firma, .firmas, .signature, .sign-row, .print-sign, #firma, #firmas {
+    display: none !important;
+  }
 .no-print{ display:none !important; }
   body{ background:#fff; color:#000; }
-  @media print {
-  /* 1) Oculta TODO por defecto */
+    /* 1) Oculta TODO por defecto */
   body * {
     visibility: hidden !important;
   }
