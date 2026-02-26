@@ -52,11 +52,6 @@ async function doLogin() {
   await signInWithEmailAndPassword(auth, authEmail(), authPass());
 }
 
-async function doRegister() {
-  setAuthStatus("Creando usuario...");
-  await createUserWithEmailAndPassword(auth, authEmail(), authPass());
-}
-
 async function doLogout() {
   setAuthStatus("Cerrando sesión...");
   await signOut(auth);
@@ -831,17 +826,7 @@ window.addEventListener("DOMContentLoaded", () => {
     try { await doLogin(); } catch (e) { setAuthStatus(e.message); }
   });
 
-  $("btnRegister")?.addEventListener("click", async () => {
-    try { await doRegister(); } catch (e) {
-      if (String(e?.code).includes("auth/email-already-in-use")) {
-        setAuthStatus("Este email ya está registrado. Pulsa ENTRAR.");
-      } else {
-        setAuthStatus(e.message);
-      }
-    }
-  });
-
-  $("btnLogout")?.addEventListener("click", async () => {
+    $("btnLogout")?.addEventListener("click", async () => {
     try { await doLogout(); } catch (e) { setAuthStatus(e.message); }
   });
 
