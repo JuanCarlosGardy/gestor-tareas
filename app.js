@@ -831,6 +831,13 @@ window.addEventListener("DOMContentLoaded", () => {
   });
 
   onAuthStateChanged(auth, (user) => {
+     const MI_EMAIL = "juancarlosgardy6@gmail.com";
+
+if (user && user.email !== MI_EMAIL) {
+  await signOut(auth);
+  setAuthStatus("Usuario no autorizado.");
+  return;
+}
     cloudUid = user?.uid || null;
 
     if (user) {
