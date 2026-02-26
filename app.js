@@ -826,56 +826,62 @@ window.addEventListener("DOMContentLoaded", () => {
     try { await doLogin(); } catch (e) { setAuthStatus(e.message); }
   });
 
-    $("btnLogout")?.addEventListener("click", async () => {
+  $("btnLogout")?.addEventListener("click", async () => {
     try { await doLogout(); } catch (e) { setAuthStatus(e.message); }
   });
 
-onAuthStateChanged(auth, async (user) => {
-  const MI_EMAIL = "juancarlosgardy6@gmail.com";
+  onAuthStateChanged(auth, async (user) => {
+    const MI_EMAIL = "juancarlosgardy6@gmail.com";
 
-  if (user && user.email !== MI_EMAIL) {
-    await signOut(auth);
-    setAuthStatus("Usuario no autorizado.");
-    return;
-  }
+    // Si alguien intenta entrar con otro email, lo expulsamos
+    if (user && user.email !== MI_EMAIL) {
+      await signOut(auth);
+      setAuthStatus("Usuario no autorizado.");
+      return;
+    }
 
-  if (user) {
-    console.log("MI UID:", user.uid);   // ← AQUÍ VA
+    // ---- CON SESIÓN ----
+    if (user) {
+      console.log("MI UID:", user.uid);
 
-    cloudUid = user.uid;
+      cloudUid = user.uid;
 
-    setAuthStatus(`Conectado: ${user.email}`);
-    if ($("btnLogout")) $("btnLogout").style.display = "inline-block";
+      setAuthStatus(`Conectado: ${user.email}`);
+      const btnOut = $("btnLogout");
+      if (btnOut) btnOut.style.display = "inline-block";
 
-    startCloudListener((cloudTasks) => {
-      tasks = cloudTasks;
-      initUI();
-    });
+      // Re-activar UI
+      const f = $("taskForm");
+      if (f) f.querySelectorAll("input, select, textarea, button").forEach(x => x.disabled = false);
+      if (btnExport) btnExport.disabled = false;
+      if (fileImport) fileImport.disabled = false;
+      if (btnClearAll) btnClearAll.disabled = false;
 
-  } else {
+      startCloudListener((cloudTasks) => {
+        tasks = cloudTasks;
+        initUI();
+      });
+
+      return;
+    }
+
+    // ---- SIN SESIÓN (INVITADO BLOQUEADO) ----
     setAuthStatus("Debes iniciar sesión para usar la aplicación.");
     cloudUid = null;
+
+    // Vaciar datos en pantalla
     tasks = [];
     initUI();
-  }
-});
 
-    } else {
-  setAuthStatus("Debes iniciar sesión para usar la aplicación.");
-  if ($("btnLogout")) $("btnLogout").style.display = "none";
+    // Bloquear formulario y acciones
+    const f = $("taskForm");
+    if (f) f.querySelectorAll("input, select, textarea, button").forEach(x => x.disabled = true);
 
-  // Vaciar datos en pantalla
-  tasks = [];
-  initUI();
+    if (btnExport) btnExport.disabled = true;
+    if (fileImport) fileImport.disabled = true;
+    if (btnClearAll) btnClearAll.disabled = true;
 
-  // Bloquear formulario y acciones
-  const f = $("taskForm");
-  if (f) f.querySelectorAll("input, select, textarea, button").forEach(x => x.disabled = true);
-
-  // Opcional: bloquear export/import también
-  if (btnExport) btnExport.disabled = true;
-  if (fileImport) fileImport.disabled = true;
-  if (btnClearAll) btnClearAll.disabled = true;
-}
+    const btnOut = $("btnLogout");
+    if (btnOut) btnOut.style.display = "none";
   });
 });
