@@ -851,6 +851,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (user) {
       setAuthStatus(`Conectado: ${user.email}`);
+       // Re-activar UI
+const f = $("taskForm");
+if (f) f.querySelectorAll("input, select, textarea, button").forEach(x => x.disabled = false);
+
+if (btnExport) btnExport.disabled = false;
+if (fileImport) fileImport.disabled = false;
+if (btnClearAll) btnClearAll.disabled = false;
       if ($("btnLogout")) $("btnLogout").style.display = "inline-block";
 
       startCloudListener((cloudTasks) => {
